@@ -1,0 +1,46 @@
+# Node.js dependencies
+**/node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Environment variables
+**/.env
+
+# Coverage directories
+coverage
+*.lcov
+
+# Build artifacts
+dist/
+build/
+
+# Docker related
+**/.dockerignore
+docker-compose.override.yml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Misc
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
