@@ -4,6 +4,7 @@ import {
   requireRole,
   requireRoles,
 } from "../middlewares/authMiddleware.js";
+import { updateUserProfile } from "../controllers/userController.js";
 
 const router = express.Router();
 
@@ -29,5 +30,8 @@ router.get("/projects/manage", protect, requireRoles(["faculty", "business"]), (
     user: req.user,
   });
 });
+
+// --- Update user profile
+router.put("/profile", protect, requireRoles(["student"]), updateUserProfile);
 
 export default router;

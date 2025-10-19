@@ -21,7 +21,9 @@ const userSchema = new mongoose.Schema(
       enum: ["student", "faculty", "business"],
       default: "student",
     },
-    skills: [String],
+    skills: [{ type: String }],
+    interests: [{ type: String }],
+    academicScore: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
