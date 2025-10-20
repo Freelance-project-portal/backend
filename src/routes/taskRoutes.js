@@ -33,7 +33,7 @@ const router = express.Router();
  *                 type: string
  *               projectId:
  *                 type: string
- *               deadline:
+ *               dueDate:
  *                 type: string
  *                 format: date
  *               assignedTo:

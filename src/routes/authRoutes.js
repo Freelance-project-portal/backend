@@ -16,11 +16,13 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - username
+ *               - name
  *               - email
  *               - password
+ *               - role
+ *               - skills
  *             properties:
- *               username:
+ *               name:
  *                 type: string
  *                 description: User's username
  *               email:
@@ -31,6 +33,15 @@ const router = express.Router();
  *                 type: string
  *                 format: password
  *                 description: User's password
+ *               role:
+ *                 type: string
+ *                 enum: [student, faculty, business]
+ *                 description: User's role (default is 'student')
+ *               skills:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of user's skills
  *     responses:
  *       201:
  *         description: User successfully registered
@@ -52,7 +63,7 @@ router.post("/register", register);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
+ *             Required:
  *               - email
  *               - password
  *             properties:

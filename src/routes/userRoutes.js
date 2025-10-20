@@ -123,14 +123,16 @@ router.get("/projects/manage", protect, requireRoles(["faculty", "business"]), (
  *           schema:
  *             type: object
  *             properties:
- *               name:
- *                 type: string
  *               skills:
  *                 type: array
  *                 items:
  *                   type: string
- *               bio:
- *                 type: string
+ *               interests:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               academicScore:
+ *                 type: number
  *     responses:
  *       200:
  *         description: Profile updated successfully

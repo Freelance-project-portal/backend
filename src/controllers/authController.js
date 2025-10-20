@@ -23,7 +23,7 @@ export const register = async (req, res) => {
       role: user.role,
       token: generateToken(user._id),
     });
-  } catch (error) {
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };

@@ -67,15 +67,20 @@ router.get("/", protect, getAllProjects);
  *             required:
  *               - title
  *               - description
+ *               - skillsRequired
+ *               - budget
+ *               - deadline
  *             properties:
  *               title:
  *                 type: string
  *               description:
  *                 type: string
- *               requirements:
+ *               skillsRequired:
  *                 type: array
  *                 items:
  *                   type: string
+ *               budget:
+ *                 type: number
  *               deadline:
  *                 type: string
  *                 format: date
@@ -104,15 +109,6 @@ router.post("/", protect, requireRoles(["faculty", "business"]), createProject);
  *         schema:
  *           type: string
  *         description: Project ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               coverLetter:
- *                 type: string
  *     responses:
  *       200:
  *         description: Application submitted successfully
@@ -158,8 +154,6 @@ router.post("/:id/apply", protect, requireRoles(["student"]), applyToProject);
  *               status:
  *                 type: string
  *                 enum: [accepted, rejected, pending]
- *               feedback:
- *                 type: string
  *     responses:
  *       200:
  *         description: Applicant status updated successfully
