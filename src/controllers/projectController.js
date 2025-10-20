@@ -1,4 +1,5 @@
 import Project from "../models/Project.js";
+import { sendEmail } from "../utils/notificationService.js";
 
 // Create new project (faculty or business only)
 export const createProject = async (req, res) => {
@@ -23,7 +24,10 @@ export const createProject = async (req, res) => {
 // Get all open projects
 export const getAllProjects = async (req, res) => {
   try {
-    const projects = await Project.find().populate("createdBy", "name role email");
+    const projects = await Project.find().populate(
+      "createdBy",
+      "name role email"
+    );
     res.json(projects);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -41,7 +45,9 @@ export const applyToProject = async (req, res) => {
       (app) => app.student.toString() === req.user._id.toString()
     );
     if (alreadyApplied)
-      return res.status(400).json({ message: "You have already applied to this project" });
+      return res
+        .status(400)
+        .json({ message: "You have already applied to this project" });
 
     project.applicants.push({ student: req.user._id });
     await project.save();
@@ -61,7 +67,9 @@ export const updateApplicantStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid status value" });
     }
 
-    const project = await Project.findById(projectId).populate("createdBy", "name email role");
+    const project = await Project.findById(projectId)
+      .populate("createdBy", "name email role")
+      .populate("applicants.student", "name email");
 
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
@@ -69,7 +77,9 @@ export const updateApplicantStatus = async (req, res) => {
 
     // Ensure only faculty or business who created the project can modify applicants
     if (project.createdBy._id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Not authorized to modify applicants" });
+      return res
+        .status(403)
+        .json({ message: "Not authorized to modify applicants" });
     }
 
     // Find the specific applicant
@@ -81,6 +91,20 @@ export const updateApplicantStatus = async (req, res) => {
     applicant.status = status;
     await project.save();
 
+    if (applicant.student?.email) {
+      const subject =
+        status === "accepted"
+          ? `🎉 Congratulations! Your application is accepted`
+          : `❌ Update on your application`;
+
+      const message =
+        status === "accepted"
+          ? `Hello ${applicant.student.name},\n\nYou have been accepted for the project "${project.title}". Please check your dashboard for details and next steps.`
+          : `Hello ${applicant.student.name},\n\nWe regret to inform you that your application for the project "${project.title}" has been rejected. Better luck next time!`;
+
+      await sendEmail(applicant.student.email, subject, message);
+    }
+
     res.json({
       message: `Applicant ${status} successfully`,
       applicant,
@@ -88,4 +112,4 @@ export const updateApplicantStatus = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: err.message });
   }
-}
+};

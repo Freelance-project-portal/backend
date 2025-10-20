@@ -8,6 +8,7 @@ import userRoutes from "./routes/userRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 import recommendRoutes from "./routes/recommendRoutes.js";
+import "./cronJobs/deadlineChecker.js";
 
 dotenv.config();
 
