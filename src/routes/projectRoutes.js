@@ -3,9 +3,10 @@ import {
   createProject,
   getAllProjects,
   applyToProject,
+  updateApplicantStatus,
+  getMyProjects,
 } from "../controllers/projectController.js";
 import { protect, requireRoles } from "../middlewares/authMiddleware.js";
-import { updateApplicantStatus } from "../controllers/projectController.js";
 
 const router = express.Router();
 
@@ -170,5 +171,25 @@ router.put(
   requireRoles(["faculty", "business"]),
   updateApplicantStatus
 );
+
+/**
+ * @swagger
+ * /api/projects/my-projects:
+ *   get:
+ *     summary: Get my projects as a faculty or business member
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Projects retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Project'
+ */
+router.get("/my-projects", protect, getMyProjects);
 
 export default router;

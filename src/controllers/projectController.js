@@ -37,19 +37,41 @@ export const getAllProjects = async (req, res) => {
 // Apply to project (student only)
 export const applyToProject = async (req, res) => {
   try {
+    const student = req.user; // from middleware
     const project = await Project.findById(req.params.id);
+
     if (!project) return res.status(404).json({ message: "Project not found" });
 
-    // prevent duplicate applications
+    // Check if user is a student
+    if (student.role !== "student")
+      return res
+        .status(403)
+        .json({ message: "Only students can apply to projects" });
+
+    // Check how many accepted projects this student already has
+    const acceptedProjects = await Project.find({
+      "applicants.student": student._id,
+      "applicants.status": "accepted",
+    });
+
+    if (acceptedProjects.length >= 3) {
+      return res.status(400).json({
+        message:
+          "You already have 3 active projects. Complete one before applying to a new one.",
+      });
+    }
+
+    // Prevent duplicate application
     const alreadyApplied = project.applicants.find(
-      (app) => app.student.toString() === req.user._id.toString()
+      (app) => app.student.toString() === student._id.toString()
     );
     if (alreadyApplied)
       return res
         .status(400)
         .json({ message: "You have already applied to this project" });
 
-    project.applicants.push({ student: req.user._id });
+    // Push new applicant
+    project.applicants.push({ student: student._id });
     await project.save();
 
     res.json({ message: "Applied successfully", project });
@@ -88,6 +110,19 @@ export const updateApplicantStatus = async (req, res) => {
       return res.status(404).json({ message: "Applicant not found" });
     }
 
+    if (status === "accepted") {
+      const activeProjects = await Project.find({
+        "applicants.student": applicant.student._id,
+        "applicants.status": "accepted",
+      });
+
+      if (activeProjects.length >= 3) {
+        return res.status(400).json({
+          message: `${applicant.student.name} already has 3 active projects.`,
+        });
+      }
+    }
+
     applicant.status = status;
     await project.save();
 
@@ -109,6 +144,29 @@ export const updateApplicantStatus = async (req, res) => {
       message: `Applicant ${status} successfully`,
       applicant,
     });
+  } catch (error) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const getMyProjects = async (req, res) => {
+  try {
+    const user = req.user;
+    let projects;
+
+    if (user.role === "student") {
+      projects = await Project.find({ "applicants.student": user._id })
+        .populate("createdBy", "name role email")
+        .populate("applicants.student", "name email");
+    } else if (user.role === "faculty" || user.role === "business") {
+      projects = await Project.find({ createdBy: user._id })
+        .populate("applicants.student", "name email")
+        .populate("createdBy", "name role email");
+    } else {
+      return res.status(403).json({ message: "Invalid role for this request" });
+    }
+
+    res.json(projects);
   } catch (error) {
     res.status(500).json({ message: err.message });
   }
