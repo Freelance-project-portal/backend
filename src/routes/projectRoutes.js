@@ -10,10 +10,16 @@ import { protect, requireRoles } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", protect, getAllProjects);
+// Public routes - no authentication required
+router.get("/", getAllProjects);
+
+// Protected routes - authentication required
+// IMPORTANT: Specific routes must come before parameterized routes
 router.get("/my-projects", protect, getMyProjects);
-router.get("/:id", protect, getProjectById);
 router.post("/", protect, requireRoles(["faculty"]), createProject);
 router.put("/:id", protect, requireRoles(["faculty"]), updateProject);
+
+// Parameterized routes - must come after specific routes
+router.get("/:id", getProjectById);
 
 export default router;
