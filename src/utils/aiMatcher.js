@@ -1,26 +1,19 @@
-export const matchProjectsToStudent = (projects, student) => {
-  const studentSkills = student.skills || [];
-  const studentInterests = student.interests || [];
+export const matchProjectsToStudent = (projects, studentProfile) => {
+  const studentSkills = studentProfile?.skills || [];
 
   const recommendations = projects.map((project) => {
     let matchScore = 0;
 
     // ✅ 1. Skill Matching
-    const matchedSkills = project.skillsRequired.filter((skill) =>
+    const matchedSkills = project.skills.filter((skill) =>
       studentSkills.includes(skill)
     );
     matchScore += matchedSkills.length * 10; // +10 per matching skill
 
-    // ✅ 2. Interest Matching
-    const matchedInterests = project.skillsRequired.filter((skill) =>
-      studentInterests.includes(skill)
-    );
-    matchScore += matchedInterests.length * 5; // +5 per matching interest
-
-    // ✅ 3. Bonus for "open" status projects
-    if (project.status === "open") {
-      matchScore += 15; // small bias towards open projects
-    } else if (project.status === "in-progress") {
+    // ✅ 2. Bonus for "active" status projects
+    if (project.status === "active") {
+      matchScore += 15; // small bias towards active projects
+    } else if (project.status === "draft") {
       matchScore += 5; // still allow them but less priority
     }
 

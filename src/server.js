@@ -1,8 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import swaggerUi from 'swagger-ui-express';
-import swaggerSpec from './config/swagger.js';
 import connectDB from "./config/db.js";
 import mongoose from "mongoose";
 
@@ -10,6 +8,7 @@ import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
+import applicationRoutes from "./routes/applicationRoutes.js";
 import recommendRoutes from "./routes/recommendRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import "./cronJobs/deadlineChecker.js";
@@ -23,16 +22,14 @@ const app = express();
 app.use(cors());
 app.use(express.json()); // to parse JSON bodies
 
-// Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
+app.use("/api/applications", applicationRoutes);
 app.use("/api/recommendations", recommendRoutes);
-app.use("/api/dashboard", dashboardRoutes)
+app.use("/api/dashboard", dashboardRoutes);
 
 app.get("/", (_, res) => {
   res.send("API is running...");

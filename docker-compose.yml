@@ -8,11 +8,16 @@ services:
     ports:
       - "5000:5000"
     env_file: .env
+    environment:
+      - MONGO_URI=mongodb://root:rootpassword@mongo:27017/freelance?authSource=admin
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     volumes:
       - .:/app
       - /app/node_modules
+    networks:
+      - freelance_network
 
   mongo:
     image: mongo:6
@@ -25,6 +30,18 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - freelance_network
 
 volumes:
   mongo_data:
+
+networks:
+  freelance_network:
+    driver: bridge

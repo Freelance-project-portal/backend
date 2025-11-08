@@ -1,173 +1,179 @@
 import Project from "../models/Project.js";
+import Application from "../models/Application.js";
+import ProjectMember from "../models/ProjectMember.js";
+import Profile from "../models/Profile.js";
+import User from "../models/User.js";
 import { sendEmail } from "../utils/notificationService.js";
 
-// Create new project (faculty or business only)
+// Create new project (faculty only)
 export const createProject = async (req, res) => {
   try {
-    const { title, description, skillsRequired, budget, deadline } = req.body;
+    const { title, description, requirements, skills, max_students, deadline } = req.body;
+
+    if (req.user.role !== "faculty") {
+      return res.status(403).json({ message: "Only faculty can create projects" });
+    }
 
     const project = await Project.create({
       title,
       description,
-      skillsRequired,
-      budget,
+      requirements,
+      skills: skills || [],
+      max_students: max_students || 1,
       deadline,
-      createdBy: req.user._id,
+      faculty_id: req.user._id,
+      status: "draft",
     });
 
-    res.status(201).json(project);
+    const facultyProfile = await Profile.findOne({ user_id: req.user._id });
+    const projectData = project.toObject();
+    projectData.faculty_name = facultyProfile?.full_name;
+
+    res.status(201).json(projectData);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Get all open projects
+// Get all projects (with filtering)
 export const getAllProjects = async (req, res) => {
   try {
-    const projects = await Project.find().populate(
-      "createdBy",
-      "name role email"
+    const { status } = req.query;
+    const query = {};
+    if (status) {
+      query.status = status;
+    }
+
+    const projects = await Project.find(query)
+      .populate("faculty_id", "email role")
+      .sort({ created_at: -1 });
+
+    // Get faculty profiles and member counts
+    const projectsWithDetails = await Promise.all(
+      projects.map(async (project) => {
+        const projectData = project.toObject();
+        const facultyProfile = await Profile.findOne({ user_id: project.faculty_id });
+        projectData.faculty_name = facultyProfile?.full_name;
+
+        // Count current students
+        const memberCount = await ProjectMember.countDocuments({
+          project_id: project._id,
+        });
+        projectData.current_students = memberCount;
+
+        return projectData;
+      })
     );
-    res.json(projects);
+
+    res.json(projectsWithDetails);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Apply to project (student only)
-export const applyToProject = async (req, res) => {
+// Get single project by ID
+export const getProjectById = async (req, res) => {
   try {
-    const student = req.user; // from middleware
-    const project = await Project.findById(req.params.id);
-
-    if (!project) return res.status(404).json({ message: "Project not found" });
-
-    // Check if user is a student
-    if (student.role !== "student")
-      return res
-        .status(403)
-        .json({ message: "Only students can apply to projects" });
-
-    // Check how many accepted projects this student already has
-    const acceptedProjects = await Project.find({
-      "applicants.student": student._id,
-      "applicants.status": "accepted",
-    });
-
-    if (acceptedProjects.length >= 3) {
-      return res.status(400).json({
-        message:
-          "You already have 3 active projects. Complete one before applying to a new one.",
-      });
-    }
-
-    // Prevent duplicate application
-    const alreadyApplied = project.applicants.find(
-      (app) => app.student.toString() === student._id.toString()
+    const project = await Project.findById(req.params.id).populate(
+      "faculty_id",
+      "email role"
     );
-    if (alreadyApplied)
-      return res
-        .status(400)
-        .json({ message: "You have already applied to this project" });
-
-    // Push new applicant
-    project.applicants.push({ student: student._id });
-    await project.save();
-
-    res.json({ message: "Applied successfully", project });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-export const updateApplicantStatus = async (req, res) => {
-  try {
-    const { projectId, applicantId } = req.params;
-    const { status } = req.body;
-
-    if (!["accepted", "rejected"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status value" });
-    }
-
-    const project = await Project.findById(projectId)
-      .populate("createdBy", "name email role")
-      .populate("applicants.student", "name email");
 
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    // Ensure only faculty or business who created the project can modify applicants
-    if (project.createdBy._id.toString() !== req.user._id.toString()) {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to modify applicants" });
-    }
+    const projectData = project.toObject();
+    const facultyProfile = await Profile.findOne({ user_id: project.faculty_id });
+    projectData.faculty_name = facultyProfile?.full_name;
 
-    // Find the specific applicant
-    const applicant = project.applicants.id(applicantId);
-    if (!applicant) {
-      return res.status(404).json({ message: "Applicant not found" });
-    }
-
-    if (status === "accepted") {
-      const activeProjects = await Project.find({
-        "applicants.student": applicant.student._id,
-        "applicants.status": "accepted",
-      });
-
-      if (activeProjects.length >= 3) {
-        return res.status(400).json({
-          message: `${applicant.student.name} already has 3 active projects.`,
-        });
-      }
-    }
-
-    applicant.status = status;
-    await project.save();
-
-    if (applicant.student?.email) {
-      const subject =
-        status === "accepted"
-          ? `🎉 Congratulations! Your application is accepted`
-          : `❌ Update on your application`;
-
-      const message =
-        status === "accepted"
-          ? `Hello ${applicant.student.name},\n\nYou have been accepted for the project "${project.title}". Please check your dashboard for details and next steps.`
-          : `Hello ${applicant.student.name},\n\nWe regret to inform you that your application for the project "${project.title}" has been rejected. Better luck next time!`;
-
-      await sendEmail(applicant.student.email, subject, message);
-    }
-
-    res.json({
-      message: `Applicant ${status} successfully`,
-      applicant,
+    const memberCount = await ProjectMember.countDocuments({
+      project_id: project._id,
     });
-  } catch (error) {
+    projectData.current_students = memberCount;
+
+    res.json(projectData);
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
+// Update project (faculty only)
+export const updateProject = async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    if (project.faculty_id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized to update this project" });
+    }
+
+    const { title, description, requirements, skills, max_students, deadline, status } =
+      req.body;
+
+    if (title) project.title = title;
+    if (description) project.description = description;
+    if (requirements) project.requirements = requirements;
+    if (skills) project.skills = skills;
+    if (max_students !== undefined) project.max_students = max_students;
+    if (deadline) project.deadline = deadline;
+    if (status) project.status = status;
+
+    await project.save();
+
+    const projectData = project.toObject();
+    const facultyProfile = await Profile.findOne({ user_id: project.faculty_id });
+    projectData.faculty_name = facultyProfile?.full_name;
+
+    res.json(projectData);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get my projects
 export const getMyProjects = async (req, res) => {
   try {
     const user = req.user;
     let projects;
 
     if (user.role === "student") {
-      projects = await Project.find({ "applicants.student": user._id })
-        .populate("createdBy", "name role email")
-        .populate("applicants.student", "name email");
-    } else if (user.role === "faculty" || user.role === "business") {
-      projects = await Project.find({ createdBy: user._id })
-        .populate("applicants.student", "name email")
-        .populate("createdBy", "name role email");
+      // Get projects where student is a member
+      const memberships = await ProjectMember.find({ student_id: user._id });
+      const projectIds = memberships.map((m) => m.project_id);
+
+      projects = await Project.find({ _id: { $in: projectIds } })
+        .populate("faculty_id", "email role")
+        .sort({ created_at: -1 });
+    } else if (user.role === "faculty") {
+      projects = await Project.find({ faculty_id: user._id })
+        .populate("faculty_id", "email role")
+        .sort({ created_at: -1 });
     } else {
       return res.status(403).json({ message: "Invalid role for this request" });
     }
 
-    res.json(projects);
-  } catch (error) {
+    // Add faculty names and member counts
+    const projectsWithDetails = await Promise.all(
+      projects.map(async (project) => {
+        const projectData = project.toObject();
+        const facultyProfile = await Profile.findOne({ user_id: project.faculty_id });
+        projectData.faculty_name = facultyProfile?.full_name;
+
+        const memberCount = await ProjectMember.countDocuments({
+          project_id: project._id,
+        });
+        projectData.current_students = memberCount;
+
+        return projectData;
+      })
+    );
+
+    res.json(projectsWithDetails);
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };

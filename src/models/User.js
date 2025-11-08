@@ -3,10 +3,6 @@ import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-    },
     email: {
       type: String,
       required: true,
@@ -18,12 +14,9 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["student", "faculty", "business"],
-      default: "student",
+      enum: ["student", "faculty"],
+      required: true,
     },
-    skills: [{ type: String }],
-    interests: [{ type: String }],
-    academicScore: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

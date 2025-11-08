@@ -4,30 +4,27 @@ const projectSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
     description: { type: String, required: true },
-    skillsRequired: [String],
-    budget: { type: Number, default: 0 },
-    deadline: { type: Date },
-    createdBy: {
+    faculty_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Faculty or Business
+      ref: "User",
       required: true,
     },
-    applicants: [
-      {
-        student: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        status: {
-          type: String,
-          enum: ["applied", "accepted", "rejected"],
-          default: "applied",
-        },
-      },
-    ],
-    assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     status: {
       type: String,
-      enum: ["open", "in-progress", "completed"],
-      default: "open",
+      enum: ["active", "completed", "draft", "closed"],
+      default: "draft",
     },
+    requirements: { type: String, required: true },
+    skills: {
+      type: [String],
+      default: [],
+    },
+    max_students: {
+      type: Number,
+      required: true,
+      default: 1,
+    },
+    deadline: { type: Date },
   },
   { timestamps: true }
 );
