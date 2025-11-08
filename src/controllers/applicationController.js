@@ -154,8 +154,18 @@ export const getMyApplications = async (req, res) => {
 // Update application status (faculty only)
 export const updateApplicationStatus = async (req, res) => {
   try {
-    const { applicationId } = req.params;
+    const applicationId = req.params.applicationId;
     const { status } = req.body;
+
+    // Validate applicationId
+    if (!applicationId || applicationId === "undefined") {
+      return res.status(400).json({ message: "Application ID is required" });
+    }
+
+    // Validate ObjectId format
+    if (!applicationId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: "Invalid application ID format" });
+    }
 
     if (!["accepted", "rejected"].includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });

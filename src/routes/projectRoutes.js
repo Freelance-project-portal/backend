@@ -6,6 +6,10 @@ import {
   updateProject,
   getMyProjects,
 } from "../controllers/projectController.js";
+import {
+  getProjectMembers,
+  removeProjectMember,
+} from "../controllers/projectMemberController.js";
 import { protect, requireRoles } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -18,6 +22,15 @@ router.get("/", getAllProjects);
 router.get("/my-projects", protect, getMyProjects);
 router.post("/", protect, requireRoles(["faculty"]), createProject);
 router.put("/:id", protect, requireRoles(["faculty"]), updateProject);
+
+// Project members routes - must come before /:id route
+router.get("/:id/members", protect, getProjectMembers);
+router.delete(
+  "/:id/members/:memberId",
+  protect,
+  requireRoles(["faculty"]),
+  removeProjectMember
+);
 
 // Parameterized routes - must come after specific routes
 router.get("/:id", getProjectById);
