@@ -44,19 +44,24 @@ export const getProjectMembers = async (req, res) => {
     const membersWithDetails = await Promise.all(
       members.map(async (member) => {
         const memberData = member.toObject();
+        // Extract student_id - handle both populated object and ObjectId
+        const studentId = memberData.student_id?._id 
+          ? memberData.student_id._id.toString() 
+          : memberData.student_id.toString();
+        
         const studentProfile = await Profile.findOne({
-          user_id: member.student_id,
+          user_id: studentId,
         });
 
         // Get task statistics for this member
         const tasksAssigned = await Task.countDocuments({
           project_id: projectId,
-          assigned_to: member.student_id,
+          assigned_to: studentId,
         });
 
         const tasksCompleted = await Task.countDocuments({
           project_id: projectId,
-          assigned_to: member.student_id,
+          assigned_to: studentId,
           status: "completed",
         });
 
@@ -64,7 +69,7 @@ export const getProjectMembers = async (req, res) => {
         return {
           id: memberData._id.toString(),
           project_id: memberData.project_id.toString(),
-          student_id: memberData.student_id.toString(),
+          student_id: studentId,
           student_name: studentProfile?.full_name || "Unknown",
           student_skills: studentProfile?.skills || [],
           joined_at: memberData.createdAt?.toISOString() || new Date().toISOString(),
