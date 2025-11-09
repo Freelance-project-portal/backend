@@ -62,9 +62,21 @@ export const getProjectTasks = async (req, res) => {
     const tasksWithNames = await Promise.all(
       tasks.map(async (task) => {
         const taskData = task.toObject();
-        let responseData = { ...taskData };
-        if (task.assigned_to) {
-          const profile = await Profile.findOne({ user_id: task.assigned_to });
+        // Extract assigned_to - handle both populated object and ObjectId
+        let assignedToId = null;
+        if (taskData.assigned_to) {
+          assignedToId = taskData.assigned_to?._id 
+            ? taskData.assigned_to._id.toString() 
+            : taskData.assigned_to.toString();
+        }
+        
+        let responseData = {
+          ...taskData,
+          assigned_to: assignedToId,
+        };
+        
+        if (assignedToId) {
+          const profile = await Profile.findOne({ user_id: assignedToId });
           responseData.assigned_to_name = profile?.full_name;
         }
         return responseData;
