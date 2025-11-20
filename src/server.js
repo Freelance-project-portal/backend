@@ -11,6 +11,7 @@ import taskRoutes from "./routes/taskRoutes.js";
 import applicationRoutes from "./routes/applicationRoutes.js";
 import recommendRoutes from "./routes/recommendRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
 import "./cronJobs/deadlineChecker.js";
 
 dotenv.config();
@@ -30,6 +31,7 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/recommendations", recommendRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 app.get("/", (_, res) => {
   res.send("API is running...");
